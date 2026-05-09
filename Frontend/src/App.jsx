@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import CandleChart from './components/CandleChart.jsx'
 import Navbar from './components/Navbar.jsx'
+import PortfolioTracker from './components/PortfolioTracker.jsx'
 import PriceCard from './components/PriceCard.jsx'
 import Watchlist from './components/Watchlist.jsx'
 import { useLivePrices } from './hooks/useLivePrices.js'
@@ -10,9 +11,9 @@ const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA', 'AMZN']
 export default function App() {
   const [tickers, setTickers] = useState(DEFAULT_TICKERS)
   const [selectedTicker, setSelectedTicker] = useState(DEFAULT_TICKERS[0])
-  const { prices: selectedPrices } = useLivePrices([selectedTicker])
 
-  const selectedPrice = selectedPrices[selectedTicker]
+  const { prices, loading, error, isLive, priceFlash } = useLivePrices(tickers)
+  const selectedPrice = prices[selectedTicker]
 
   useEffect(() => {
     if (!tickers.includes(selectedTicker)) {
@@ -30,20 +31,20 @@ export default function App() {
     setSelectedTicker(normalized)
   }
 
-  const handleSelectTicker = (ticker) => {
-    setSelectedTicker(ticker)
-  }
-
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      <Navbar onAddTicker={handleAddTicker} />
+      <Navbar onAddTicker={handleAddTicker} isLive={isLive} />
 
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 lg:min-h-[calc(100vh-88px)] lg:flex-row">
         <aside className="w-full lg:w-[280px] lg:flex-none">
           <Watchlist
             tickers={tickers}
             selectedTicker={selectedTicker}
-            onSelectTicker={handleSelectTicker}
+            onSelectTicker={setSelectedTicker}
+            prices={prices}
+            loading={loading}
+            error={error}
+            priceFlash={priceFlash}
           />
         </aside>
 
@@ -61,12 +62,13 @@ export default function App() {
               </div>
 
               <div className="w-full lg:max-w-md">
-                <PriceCard priceData={selectedPrice} />
+                <PriceCard priceData={selectedPrice} flashDirection={priceFlash[selectedTicker]} />
               </div>
             </div>
           </section>
 
           <CandleChart ticker={selectedTicker} />
+          <PortfolioTracker prices={prices} />
         </main>
       </div>
     </div>

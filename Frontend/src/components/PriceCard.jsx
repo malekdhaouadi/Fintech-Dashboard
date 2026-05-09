@@ -67,7 +67,7 @@ function ArrowIcon({ positive }) {
   )
 }
 
-export default function PriceCard({ priceData }) {
+export default function PriceCard({ priceData, flashDirection }) {
   const ticker = priceData?.ticker ?? '—'
   const price = priceData?.price
   const change = Number(priceData?.change ?? 0)
@@ -75,8 +75,15 @@ export default function PriceCard({ priceData }) {
   const volume = priceData?.volume
   const positive = change >= 0
 
+  const flashClass =
+    flashDirection === 'up'
+      ? 'ring-1 ring-emerald-500/40 shadow-[0_0_0_1px_rgba(34,197,94,0.2),0_0_30px_rgba(34,197,94,0.18)]'
+      : flashDirection === 'down'
+        ? 'ring-1 ring-red-500/40 shadow-[0_0_0_1px_rgba(239,68,68,0.2),0_0_30px_rgba(239,68,68,0.18)]'
+        : ''
+
   return (
-    <article className="group relative overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/95 p-5 shadow-2xl shadow-black/30 transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-700 hover:bg-gray-900">
+    <article className={`group relative overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/95 p-5 shadow-2xl shadow-black/30 transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-700 hover:bg-gray-900 ${flashClass}`}>
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/8 via-transparent to-blue-500/8 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <div className="relative flex flex-col gap-4">
         <div className="flex items-start justify-between gap-4">

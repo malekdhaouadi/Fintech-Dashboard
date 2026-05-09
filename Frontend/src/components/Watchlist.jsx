@@ -1,4 +1,6 @@
-import { useLivePrices } from '../hooks/useLivePrices.js'
+import { useEffect, useMemo, useState } from 'react'
+import { Line, LineChart, ResponsiveContainer } from 'recharts'
+import { getHistory } from '../services/api.js'
 
 const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA', 'AMZN']
 
@@ -58,12 +60,87 @@ function MiniArrow({ positive }) {
   )
 }
 
+function Sparkline({ points }) {
+  if (!points || points.length === 0) {
+    return <div className="h-12 w-24 rounded-lg bg-gray-900/40" />
+  }
+
+  const first = Number(points[0]?.close)
+  const last = Number(points[points.length - 1]?.close)
+  const positive = Number.isFinite(first) && Number.isFinite(last) ? last >= first : true
+
+  return (
+    <div className="flex h-12 w-24 items-center justify-center">
+      <ResponsiveContainer width="100%" height="100%" minWidth={96} minHeight={48}>
+        <LineChart data={points} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+          <Line
+            type="monotone"
+            dataKey="close"
+            stroke={positive ? '#22c55e' : '#ef4444'}
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
 export default function Watchlist({
   tickers = DEFAULT_TICKERS,
   selectedTicker,
   onSelectTicker,
+  prices,
+  loading,
+  error,
+  priceFlash,
 }) {
-  const { prices, loading, error } = useLivePrices(tickers)
+  const [sparkData, setSparkData] = useState({})
+
+  const tickerKey = useMemo(() => tickers.join('|'), [tickers])
+
+  useEffect(() => {
+    let active = true
+
+    const loadSparklines = async () => {
+      const settled = await Promise.allSettled(
+        tickers.map(async (ticker) => {
+          const rows = await getHistory(ticker, '5d')
+          return [
+            ticker,
+            rows.slice(-48).map((item, index) => ({
+              index,
+              close: Number(item.close),
+            })),
+          ]
+        }),
+      )
+
+      if (!active) {
+        return
+      }
+
+      const next = {}
+      settled.forEach((entry, index) => {
+        if (entry.status === 'fulfilled') {
+          const [ticker, values] = entry.value
+          next[ticker] = values
+          return
+        }
+
+        next[tickers[index]] = []
+      })
+
+      setSparkData(next)
+    }
+
+    loadSparklines()
+
+    return () => {
+      active = false
+    }
+  }, [tickerKey])
 
   return (
     <section className="flex h-full flex-col rounded-3xl border border-gray-800 bg-gray-900/95 p-4 shadow-2xl shadow-black/30">
@@ -88,15 +165,22 @@ export default function Watchlist({
           const price = prices[ticker]
           const positive = Number(price?.change ?? 0) >= 0
           const selected = selectedTicker === ticker
+          const flash = priceFlash?.[ticker]
+          const flashClass =
+            flash === 'up'
+              ? 'ring-1 ring-emerald-500/30'
+              : flash === 'down'
+                ? 'ring-1 ring-red-500/30'
+                : ''
 
           return (
             <button
               key={ticker}
               type="button"
               onClick={() => onSelectTicker(ticker)}
-              className={`group flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-gray-600 hover:bg-gray-800/90 ${
+              className={`group flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-600 hover:bg-gray-800/90 ${flashClass} ${
                 selected
-                  ? 'border-emerald-500/30 bg-emerald-500/10 ring-1 ring-emerald-500/20'
+                  ? 'border-emerald-500/30 bg-emerald-500/10'
                   : 'border-gray-800 bg-gray-950/60'
               }`}
             >
@@ -110,6 +194,9 @@ export default function Watchlist({
                   ) : null}
                 </div>
                 <p className="mt-1 text-xs text-gray-500">US equity</p>
+                <div className="mt-2">
+                  <Sparkline points={sparkData[ticker]} />
+                </div>
               </div>
 
               <div className="text-right">

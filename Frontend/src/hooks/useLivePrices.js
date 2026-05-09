@@ -1,20 +1,31 @@
-import { useEffect, useState } from 'react'
-import { getPrice } from '../services/api.js'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { wsBaseURL } from '../services/api.js'
 
-const REFRESH_INTERVAL_MS = 30000
+const RECONNECT_DELAY_MS = 3000
+const FLASH_RESET_DELAY_MS = 900
 
 export function useLivePrices(tickers = []) {
   const [prices, setPrices] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [isLive, setIsLive] = useState(false)
+  const [priceFlash, setPriceFlash] = useState({})
 
-  const normalizedTickers = Array.from(
-    new Set(
-      tickers
-        .map((ticker) => String(ticker ?? '').trim().toUpperCase())
-        .filter(Boolean),
-    ),
+  const wsRef = useRef(null)
+  const reconnectRef = useRef(null)
+
+  const normalizedTickers = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          tickers
+            .map((ticker) => String(ticker ?? '').trim().toUpperCase())
+            .filter(Boolean),
+        ),
+      ),
+    [tickers],
   )
+  const tickerSet = useMemo(() => new Set(normalizedTickers), [normalizedTickers])
   const tickerKey = normalizedTickers.join('|')
 
   useEffect(() => {
@@ -22,67 +33,128 @@ export function useLivePrices(tickers = []) {
       setPrices({})
       setLoading(false)
       setError(null)
+      setIsLive(false)
       return undefined
     }
 
     let active = true
 
-    const refresh = async () => {
-      setLoading(true)
-
-      const settled = await Promise.allSettled(
-        normalizedTickers.map(async (ticker) => {
-          const price = await getPrice(ticker)
-          return [ticker, price]
-        }),
-      )
-
-      if (!active) {
-        return
+    const clearReconnectTimer = () => {
+      if (reconnectRef.current) {
+        window.clearTimeout(reconnectRef.current)
+        reconnectRef.current = null
       }
+    }
 
-      const nextPrices = {}
-      const failedTickers = []
+    const connect = () => {
+      clearReconnectTimer()
+      try {
+        const url = `${wsBaseURL}/api/ws/prices`
+        console.log('[WebSocket] Connecting to:', url)
+        const socket = new WebSocket(url)
+        wsRef.current = socket
 
-      settled.forEach((result, index) => {
-        const ticker = normalizedTickers[index]
-        if (result.status === 'fulfilled') {
-          const [resolvedTicker, price] = result.value
-          nextPrices[resolvedTicker] = price
+        socket.onopen = () => {
+        if (!active) {
           return
         }
 
-        failedTickers.push(ticker)
-      })
+        setIsLive(true)
+        setError(null)
+      }
 
-      setPrices((currentPrices) => {
-        const mergedPrices = { ...currentPrices }
+      socket.onmessage = (event) => {
+        if (!active) {
+          return
+        }
 
-        normalizedTickers.forEach((ticker) => {
-          if (Object.prototype.hasOwnProperty.call(nextPrices, ticker)) {
-            mergedPrices[ticker] = nextPrices[ticker]
-          }
-        })
+        try {
+          const payload = JSON.parse(event.data)
 
-        return mergedPrices
-      })
+          setPrices((currentPrices) => {
+            const merged = { ...currentPrices }
+            const flash = {}
 
-      setError(
-        failedTickers.length === normalizedTickers.length
-          ? 'Live prices are temporarily unavailable. Retrying automatically.'
-          : null,
-      )
-      setLoading(false)
+            Object.entries(payload).forEach(([ticker, nextValue]) => {
+              if (!tickerSet.has(ticker)) {
+                return
+              }
+
+              const previous = currentPrices[ticker]
+              const previousPrice = Number(previous?.price)
+              const nextPrice = Number(nextValue?.price)
+
+              if (Number.isFinite(previousPrice) && Number.isFinite(nextPrice) && nextPrice !== previousPrice) {
+                flash[ticker] = nextPrice > previousPrice ? 'up' : 'down'
+              }
+
+              merged[ticker] = {
+                ...nextValue,
+                ticker,
+              }
+            })
+
+            if (Object.keys(flash).length > 0) {
+              setPriceFlash((existing) => ({ ...existing, ...flash }))
+              window.setTimeout(() => {
+                setPriceFlash((existing) => {
+                  const nextFlash = { ...existing }
+                  Object.keys(flash).forEach((ticker) => {
+                    delete nextFlash[ticker]
+                  })
+                  return nextFlash
+                })
+              }, FLASH_RESET_DELAY_MS)
+            }
+
+            return merged
+          })
+
+          setLoading(false)
+          setError(null)
+        } catch {
+          setError('Live stream data could not be parsed.')
+        }
+      }
+
+      socket.onclose = () => {
+        if (!active) {
+          return
+        }
+
+        setIsLive(false)
+        setError('Live prices are temporarily unavailable. Retrying automatically.')
+        reconnectRef.current = window.setTimeout(connect, RECONNECT_DELAY_MS)
+      }
+
+      socket.onerror = (err) => {
+        if (!active) {
+          return
+        }
+
+        console.error('[WebSocket] Connection error:', err)
+        setIsLive(false)
+        setError('Live prices are temporarily unavailable. Retrying automatically.')
+      }
+      } catch (err) {
+        console.error('[WebSocket] Failed to create WebSocket:', err)
+        setError('Unable to establish live connection.')
+        reconnectRef.current = window.setTimeout(connect, RECONNECT_DELAY_MS)
+      }
     }
 
-    refresh()
-    const intervalId = window.setInterval(refresh, REFRESH_INTERVAL_MS)
+    connect()
 
     return () => {
       active = false
-      window.clearInterval(intervalId)
-    }
-  }, [tickerKey])
+      clearReconnectTimer()
 
-  return { prices, loading, error }
+      if (wsRef.current) {
+        wsRef.current.close()
+        wsRef.current = null
+      }
+    }
+  }, [tickerKey, wsBaseURL])
+
+  return { prices, loading, error, isLive, priceFlash }
 }
