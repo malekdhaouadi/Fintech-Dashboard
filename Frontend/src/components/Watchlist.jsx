@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { Line, LineChart, ResponsiveContainer } from 'recharts'
 import { getHistory } from '../services/api.js'
 
-const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA', 'AMZN']
+const DEFAULT_GROUPS = [
+  { title: 'Tech', tickers: ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA'] },
+  { title: 'Finance', tickers: ['JPM', 'V', 'BRK-B'] },
+  { title: 'ETFs', tickers: ['SPY', 'QQQ', 'IWM', 'GLD', 'TLT'] },
+  { title: 'Crypto', tickers: ['COIN', 'MSTR'] },
+  { title: 'Indices', tickers: ['^FTSE', '^N225', '^HSI'] },
+]
 
 const moneyFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -88,7 +94,9 @@ function Sparkline({ points }) {
 }
 
 export default function Watchlist({
-  tickers = DEFAULT_TICKERS,
+  // Backwards-compatible: accept either `groups` (preferred) or `tickers` array
+  groups = DEFAULT_GROUPS,
+  tickers, // optional legacy prop
   selectedTicker,
   onSelectTicker,
   prices,
@@ -98,14 +106,36 @@ export default function Watchlist({
 }) {
   const [sparkData, setSparkData] = useState({})
 
-  const tickerKey = useMemo(() => tickers.join('|'), [tickers])
+  const effectiveGroups = useMemo(() => {
+    if (Array.isArray(groups) && groups.length > 0 && groups[0]?.tickers) {
+      return groups
+    }
+
+    // if caller passed a simple tickers array via `tickers` prop, wrap it
+    if (Array.isArray(tickers) && tickers.length > 0) {
+      return [{ title: 'Watchlist', tickers: tickers }]
+    }
+
+    return DEFAULT_GROUPS
+  }, [groups, tickers])
+
+  const flattenedTickers = useMemo(() => {
+    const all = []
+    effectiveGroups.forEach((g) => {
+      (g.tickers || []).forEach((t) => all.push(String(t).trim()))
+    })
+    // dedupe while preserving order
+    return Array.from(new Set(all))
+  }, [effectiveGroups])
+
+  const tickerKey = useMemo(() => flattenedTickers.join('|'), [flattenedTickers])
 
   useEffect(() => {
     let active = true
 
     const loadSparklines = async () => {
       const settled = await Promise.allSettled(
-        tickers.map(async (ticker) => {
+        flattenedTickers.map(async (ticker) => {
           const rows = await getHistory(ticker, '5d')
           return [
             ticker,
@@ -123,13 +153,14 @@ export default function Watchlist({
 
       const next = {}
       settled.forEach((entry, index) => {
+        const sourceTicker = flattenedTickers[index]
         if (entry.status === 'fulfilled') {
           const [ticker, values] = entry.value
           next[ticker] = values
           return
         }
 
-        next[tickers[index]] = []
+        next[sourceTicker] = []
       })
 
       setSparkData(next)
@@ -160,8 +191,15 @@ export default function Watchlist({
         </div>
       ) : null}
 
-      <div className="flex flex-1 flex-col gap-2 overflow-auto pr-1">
-        {tickers.map((ticker) => {
+      <div className="flex flex-1 flex-col gap-3 overflow-auto pr-1">
+        {effectiveGroups.map((group) => (
+          <div key={group.title} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-300">{group.title}</h3>
+              <span className="text-xs text-gray-500">{(group.tickers || []).length}</span>
+            </div>
+
+            {(group.tickers || []).map((ticker) => {
           const price = prices[ticker]
           const positive = Number(price?.change ?? 0) >= 0
           const selected = selectedTicker === ticker
@@ -172,51 +210,52 @@ export default function Watchlist({
               : flash === 'down'
                 ? 'ring-1 ring-red-500/30'
                 : ''
+            return (
+              <button
+                key={ticker}
+                type="button"
+                onClick={() => onSelectTicker(ticker)}
+                className={`group flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-600 hover:bg-gray-800/90 ${flashClass} ${
+                  selected
+                    ? 'border-emerald-500/30 bg-emerald-500/10'
+                    : 'border-gray-800 bg-gray-950/60'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-bold tracking-wide text-white">{ticker}</span>
+                    {selected ? (
+                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-emerald-300">
+                        Active
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">{group.title}</p>
+                  <div className="mt-2">
+                    <Sparkline points={sparkData[ticker]} />
+                  </div>
+                </div>
 
-          return (
-            <button
-              key={ticker}
-              type="button"
-              onClick={() => onSelectTicker(ticker)}
-              className={`group flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-600 hover:bg-gray-800/90 ${flashClass} ${
-                selected
-                  ? 'border-emerald-500/30 bg-emerald-500/10'
-                  : 'border-gray-800 bg-gray-950/60'
-              }`}
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-bold tracking-wide text-white">{ticker}</span>
-                  {selected ? (
-                    <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-emerald-300">
-                      Active
+                <div className="text-right">
+                  <p className="text-base font-semibold text-white">
+                    {loading && !price ? 'Loading...' : formatPrice(price?.price)}
+                  </p>
+                  <div
+                    className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${
+                      positive ? 'text-emerald-400' : 'text-red-400'
+                    }`}
+                  >
+                    {price ? <MiniArrow positive={positive} /> : null}
+                    <span>
+                      {price ? `${formatDelta(price.change)} (${formatPercent(price.change_pct)})` : 'Live'}
                     </span>
-                  ) : null}
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">US equity</p>
-                <div className="mt-2">
-                  <Sparkline points={sparkData[ticker]} />
-                </div>
-              </div>
-
-              <div className="text-right">
-                <p className="text-base font-semibold text-white">
-                  {loading && !price ? 'Loading...' : formatPrice(price?.price)}
-                </p>
-                <div
-                  className={`mt-1 inline-flex items-center gap-1 text-xs font-medium ${
-                    positive ? 'text-emerald-400' : 'text-red-400'
-                  }`}
-                >
-                  {price ? <MiniArrow positive={positive} /> : null}
-                  <span>
-                    {price ? `${formatDelta(price.change)} (${formatPercent(price.change_pct)})` : 'Live'}
-                  </span>
-                </div>
-              </div>
-            </button>
-          )
-        })}
+              </button>
+            )
+          })}
+          </div>
+        ))}
       </div>
     </section>
   )

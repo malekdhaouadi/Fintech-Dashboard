@@ -2,9 +2,6 @@
 
 Professional, responsive fintech dashboard built with a modern React + Vite frontend and a FastAPI backend. Designed for local development and quick iteration, the project provides live market prices, historical charts, sparklines, portfolio tracking, and technical indicators.
 
-**Author:** Malek Dhaouadi
-**Contact:** malek.dhaouadi@esprit.tn
-
 ## Features
 - Real-time price streaming via WebSocket
 - Historical OHLCV candlestick charts (Recharts)
@@ -69,15 +66,5 @@ Use the frontend environment variable `VITE_API_URL` to override the backend bas
 ## Contribution
 Contributions, issues, and feature requests are welcome. Please open an issue describing the change and a brief PR when ready.
 
-## License
-This project is provided as-is. Add a license file (e.g., MIT) if you plan to open-source this repository.
-
----
-
-If you'd like, I can also:
-- Add a `LICENSE` file (MIT) and a simple `.github/ISSUE_TEMPLATE.md`
-- Create a CI workflow for linting/build/test
-- Commit the README and create a Git tag
-
-Author: Malek Dhaouadi
-Contact: malek.dhaouadi@esprit.tn
+**Author:** Malek Dhaouadi
+**Contact:** malek.dhaouadi@esprit.tn
