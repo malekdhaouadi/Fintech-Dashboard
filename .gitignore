@@ -7,3 +7,7 @@ venv/
 __pycache__/
 **/__pycache__/
 *.pyc
+
+Frontend/.env.local
+Frontend/.env.*.local
+Frontend/.env

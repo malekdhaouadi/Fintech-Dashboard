@@ -67,13 +67,16 @@ function ArrowIcon({ positive }) {
   )
 }
 
-export default function PriceCard({ priceData, flashDirection }) {
+export default function PriceCard({ priceData, flashDirection, formatters, lastUpdated }) {
   const ticker = priceData?.ticker ?? '—'
   const price = priceData?.price
   const change = Number(priceData?.change ?? 0)
   const changePct = Number(priceData?.change_pct ?? 0)
   const volume = priceData?.volume
   const positive = change >= 0
+  const formatPrice = formatters?.formatPrice ?? ((value) => Number(value).toFixed(2))
+  const formatSignedPrice = formatters?.formatSignedPrice ?? ((value) => `${Number(value) >= 0 ? '+' : '-'}${Math.abs(Number(value)).toFixed(2)}`)
+  const formatCompact = formatters?.formatCompact ?? ((value) => compactFormatter.format(Number(value)))
 
   const flashClass =
     flashDirection === 'up'
@@ -92,6 +95,9 @@ export default function PriceCard({ priceData, flashDirection }) {
             <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white">
               {ticker}
             </h2>
+            <p className="mt-2 text-xs uppercase tracking-[0.24em] text-gray-500">
+              {lastUpdated ? `Last updated ${new Date(lastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Live price feed'}
+            </p>
           </div>
           <div
             className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-medium ${
@@ -101,13 +107,13 @@ export default function PriceCard({ priceData, flashDirection }) {
             }`}
           >
             <ArrowIcon positive={positive} />
-            <span>{formatSignedCurrency(change)}</span>
+            <span>{formatSignedPrice(change)}</span>
           </div>
         </div>
 
         <div>
           <p className="text-sm uppercase tracking-[0.3em] text-gray-500">Price</p>
-          <p className="mt-2 text-4xl font-semibold text-white">{formatCurrency(price)}</p>
+          <p className="mt-2 text-4xl font-semibold text-white">{formatPrice(price)}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -119,7 +125,7 @@ export default function PriceCard({ priceData, flashDirection }) {
           </div>
           <div className="rounded-2xl border border-gray-800 bg-gray-950/70 p-3">
             <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Volume</p>
-            <p className="mt-2 text-lg font-semibold text-gray-100">{formatVolume(volume)}</p>
+            <p className="mt-2 text-lg font-semibold text-gray-100">{formatCompact(volume)}</p>
           </div>
         </div>
       </div>

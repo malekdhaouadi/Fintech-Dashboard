@@ -13,6 +13,7 @@ export function useLivePrices(tickers = []) {
 
   const wsRef = useRef(null)
   const reconnectRef = useRef(null)
+  const backoffRef = useRef(1)
 
   const normalizedTickers = useMemo(
     () =>
@@ -48,96 +49,105 @@ export function useLivePrices(tickers = []) {
 
     const connect = () => {
       clearReconnectTimer()
+
       try {
         const url = `${wsBaseURL}/api/ws/prices`
-        console.log('[WebSocket] Connecting to:', url)
+        console.debug('[useLivePrices] connecting to', url)
         const socket = new WebSocket(url)
         wsRef.current = socket
 
         socket.onopen = () => {
-        if (!active) {
-          return
-        }
+          if (!active) {
+            return
+          }
 
-        setIsLive(true)
-        setError(null)
-      }
-
-      socket.onmessage = (event) => {
-        if (!active) {
-          return
-        }
-
-        try {
-          const payload = JSON.parse(event.data)
-
-          setPrices((currentPrices) => {
-            const merged = { ...currentPrices }
-            const flash = {}
-
-            Object.entries(payload).forEach(([ticker, nextValue]) => {
-              if (!tickerSet.has(ticker)) {
-                return
-              }
-
-              const previous = currentPrices[ticker]
-              const previousPrice = Number(previous?.price)
-              const nextPrice = Number(nextValue?.price)
-
-              if (Number.isFinite(previousPrice) && Number.isFinite(nextPrice) && nextPrice !== previousPrice) {
-                flash[ticker] = nextPrice > previousPrice ? 'up' : 'down'
-              }
-
-              merged[ticker] = {
-                ...nextValue,
-                ticker,
-              }
-            })
-
-            if (Object.keys(flash).length > 0) {
-              setPriceFlash((existing) => ({ ...existing, ...flash }))
-              window.setTimeout(() => {
-                setPriceFlash((existing) => {
-                  const nextFlash = { ...existing }
-                  Object.keys(flash).forEach((ticker) => {
-                    delete nextFlash[ticker]
-                  })
-                  return nextFlash
-                })
-              }, FLASH_RESET_DELAY_MS)
-            }
-
-            return merged
-          })
-
+          setIsLive(true)
           setLoading(false)
           setError(null)
-        } catch {
-          setError('Live stream data could not be parsed.')
-        }
-      }
-
-      socket.onclose = () => {
-        if (!active) {
-          return
+          backoffRef.current = 1
+          console.debug('[useLivePrices] websocket open')
         }
 
-        setIsLive(false)
-        setError('Live prices are temporarily unavailable. Retrying automatically.')
-        reconnectRef.current = window.setTimeout(connect, RECONNECT_DELAY_MS)
-      }
+        socket.onmessage = (event) => {
+          if (!active) {
+            return
+          }
 
-      socket.onerror = (err) => {
-        if (!active) {
-          return
+          try {
+            const payload = JSON.parse(event.data)
+
+            setPrices((currentPrices) => {
+              const merged = { ...currentPrices }
+              const flash = {}
+
+              Object.entries(payload).forEach(([ticker, nextValue]) => {
+                if (!tickerSet.has(ticker)) {
+                  return
+                }
+
+                const previous = currentPrices[ticker]
+                const previousPrice = Number(previous?.price)
+                const nextPrice = Number(nextValue?.price)
+
+                if (
+                  Number.isFinite(previousPrice) &&
+                  Number.isFinite(nextPrice) &&
+                  nextPrice !== previousPrice
+                ) {
+                  flash[ticker] = nextPrice > previousPrice ? 'up' : 'down'
+                }
+
+                merged[ticker] = {
+                  ...nextValue,
+                  ticker,
+                  updatedAt: new Date().toISOString(),
+                }
+              })
+
+              if (Object.keys(flash).length > 0) {
+                setPriceFlash((existing) => ({ ...existing, ...flash }))
+                window.setTimeout(() => {
+                  setPriceFlash((existing) => {
+                    const nextFlash = { ...existing }
+                    Object.keys(flash).forEach((ticker) => {
+                      delete nextFlash[ticker]
+                    })
+                    return nextFlash
+                  })
+                }, FLASH_RESET_DELAY_MS)
+              }
+
+              return merged
+            })
+
+            setError(null)
+          } catch {
+            setError('Live stream data could not be parsed.')
+          }
         }
 
-        console.error('[WebSocket] Connection error:', err)
-        setIsLive(false)
-        setError('Live prices are temporarily unavailable. Retrying automatically.')
-      }
+        socket.onclose = (ev) => {
+          if (!active) return
+          setIsLive(false)
+          console.warn('[useLivePrices] websocket closed', ev.code, ev.reason)
+          setError('Live prices are temporarily unavailable. Retrying automatically.')
+          // exponential backoff (cap at 30s)
+          const delay = Math.min(RECONNECT_DELAY_MS * backoffRef.current, 30000)
+          reconnectRef.current = window.setTimeout(connect, delay)
+          backoffRef.current = Math.min(backoffRef.current * 2, 10)
+        }
+
+        socket.onerror = (err) => {
+          if (!active) return
+          console.error('[useLivePrices] websocket error', err)
+          setIsLive(false)
+          setError('Live prices are temporarily unavailable. Retrying automatically.')
+        }
       } catch (err) {
-        console.error('[WebSocket] Failed to create WebSocket:', err)
+        if (!active) {
+          return
+        }
+
         setError('Unable to establish live connection.')
         reconnectRef.current = window.setTimeout(connect, RECONNECT_DELAY_MS)
       }

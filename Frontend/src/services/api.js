@@ -4,7 +4,7 @@ const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 const api = axios.create({
   baseURL,
-  timeout: 15000,
+  timeout: 30000,
 })
 
 export const wsBaseURL = baseURL.replace(/^http/i, 'ws')

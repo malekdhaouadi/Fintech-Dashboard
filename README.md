@@ -1,14 +1,17 @@
-# FinTech Dashboard — DashboardFintech
+# FinPulse
 
-Professional, responsive fintech dashboard built with a modern React + Vite frontend and a FastAPI backend. Designed for local development and quick iteration, the project provides live market prices, historical charts, sparklines, portfolio tracking, and technical indicators.
+Professional, responsive global markets dashboard built with a modern React + Vite frontend and a FastAPI backend. Designed for local development and quick iteration, the project provides live market prices, historical charts, market overviews, sparklines, portfolio tracking, and technical indicators across US, Tunisia, Europe, UK, crypto, forex, and commodities.
 
 ## Features
 - Real-time price streaming via WebSocket
+- Global market selector with regional watchlists
+- Map-backed country selector for the watchlist sidebar
+- Market overview cards for major indices, crypto, and FX
 - Historical OHLCV candlestick charts (Recharts)
 - Watchlist with mini sparklines
 - Portfolio tracker with P&L and allocation pie chart
 - Autocomplete ticker search backed by backend search endpoint
-- Technical indicators endpoint (MA20, MA50, RSI14)
+- Technical indicators endpoint (RSI14, MACD, MA50, MA200)
 
 ## Architecture & Tech Stack
 - Frontend: React 18, TypeScript, Vite, Tailwind CSS, Recharts
@@ -44,6 +47,11 @@ npm run dev
 ```
 
 Frontend dev server default: `http://localhost:5173`
+
+Map preview configuration:
+- Create `Frontend/.env.local`
+- Add `VITE_MAPTILER_API_KEY=<your key>`
+- The file is ignored by git so the key stays local
 
 ## Important Endpoints
 - GET /api/price/{ticker} — current quote

@@ -4,20 +4,6 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
 const STORAGE_KEY = 'fintech-pulse-portfolio'
 const COLORS = ['#22c55e', '#38bdf8', '#f59e0b', '#a78bfa', '#ef4444', '#14b8a6', '#84cc16']
 
-const moneyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 2,
-})
-
-function formatMoney(value) {
-  if (!Number.isFinite(Number(value))) {
-    return '—'
-  }
-
-  return moneyFormatter.format(Number(value))
-}
-
 function PortfolioTooltip({ active, payload }) {
   if (!active || !payload?.length) {
     return null
@@ -33,9 +19,10 @@ function PortfolioTooltip({ active, payload }) {
   )
 }
 
-export default function PortfolioTracker({ prices }) {
+export default function PortfolioTracker({ prices, formatters }) {
   const [form, setForm] = useState({ ticker: '', quantity: '', buyPrice: '' })
   const [holdings, setHoldings] = useState([])
+  const formatMoney = formatters?.formatPrice ?? ((value) => Number(value).toFixed(2))
 
   useEffect(() => {
     try {
@@ -140,7 +127,7 @@ export default function PortfolioTracker({ prices }) {
           <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Total value</p>
           <p className="mt-1 text-2xl font-bold text-white">{formatMoney(totalValue)}</p>
           <p className={`text-sm font-semibold ${totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {totalPnl >= 0 ? '+' : '-'}{formatMoney(Math.abs(totalPnl)).replace('$', '')} ({totalPnl >= 0 ? '+' : '-'}{Math.abs(totalPnlPct).toFixed(2)}%)
+            {totalPnl >= 0 ? '+' : '-'}{formatMoney(Math.abs(totalPnl)).replace(/^[^\d-]+/, '')} ({totalPnl >= 0 ? '+' : '-'}{Math.abs(totalPnlPct).toFixed(2)}%)
           </p>
         </div>
       </div>
@@ -208,7 +195,7 @@ export default function PortfolioTracker({ prices }) {
                   <div className="text-right">
                     <p className="text-xs uppercase tracking-[0.26em] text-gray-500">P&L</p>
                     <p className={`text-sm font-semibold ${item.pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {item.pnl >= 0 ? '+' : '-'}{formatMoney(Math.abs(item.pnl)).replace('$', '')} ({item.pnl >= 0 ? '+' : '-'}{Math.abs(item.pnlPct).toFixed(2)}%)
+                      {item.pnl >= 0 ? '+' : '-'}{formatMoney(Math.abs(item.pnl)).replace(/^[^\d-]+/, '')} ({item.pnl >= 0 ? '+' : '-'}{Math.abs(item.pnlPct).toFixed(2)}%)
                     </p>
                   </div>
                 </div>

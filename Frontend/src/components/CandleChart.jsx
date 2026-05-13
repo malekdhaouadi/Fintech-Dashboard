@@ -19,12 +19,6 @@ const PERIODS = [
   { label: '1Y', value: '1y' },
 ]
 
-const moneyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 2,
-})
-
 const volumeFormatter = new Intl.NumberFormat('en-US', {
   notation: 'compact',
   compactDisplay: 'short',
@@ -41,22 +35,6 @@ function formatDate(value) {
     month: 'short',
     day: 'numeric',
   })
-}
-
-function formatNumber(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return '—'
-  }
-
-  return moneyFormatter.format(Number(value))
-}
-
-function formatVolume(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return '—'
-  }
-
-  return volumeFormatter.format(Number(value))
 }
 
 function CandleLayer({ data, xAxisMap, yAxisMap }) {
@@ -118,7 +96,7 @@ function CandleLayer({ data, xAxisMap, yAxisMap }) {
   )
 }
 
-function ChartTooltip({ active, payload }) {
+function ChartTooltip({ active, payload, formatPrice, formatCompact }) {
   if (!active || !payload?.length) {
     return null
   }
@@ -131,34 +109,38 @@ function ChartTooltip({ active, payload }) {
       <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-gray-500">Open</p>
-          <p className="mt-1 text-gray-100">{formatNumber(entry.open)}</p>
+          <p className="mt-1 text-gray-100">{formatPrice(entry.open)}</p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-gray-500">High</p>
-          <p className="mt-1 text-emerald-400">{formatNumber(entry.high)}</p>
+          <p className="mt-1 text-emerald-400">{formatPrice(entry.high)}</p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-gray-500">Low</p>
-          <p className="mt-1 text-red-400">{formatNumber(entry.low)}</p>
+          <p className="mt-1 text-red-400">{formatPrice(entry.low)}</p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-gray-500">Close</p>
-          <p className="mt-1 text-gray-100">{formatNumber(entry.close)}</p>
+          <p className="mt-1 text-gray-100">{formatPrice(entry.close)}</p>
         </div>
         <div className="col-span-2">
           <p className="text-xs uppercase tracking-[0.28em] text-gray-500">Volume</p>
-          <p className="mt-1 text-gray-100">{formatVolume(entry.volume)}</p>
+          <p className="mt-1 text-gray-100">{formatCompact(entry.volume)}</p>
         </div>
       </div>
     </div>
   )
 }
 
-export default function CandleChart({ ticker }) {
+export default function CandleChart({ ticker, formatters }) {
   const [period, setPeriod] = useState('1M')
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const formatPrice = formatters?.formatPrice ?? ((value) => Number(value).toFixed(2))
+  const formatCompact =
+    formatters?.formatCompact ?? ((value) => volumeFormatter.format(Number(value)))
 
   const backendPeriod = useMemo(() => {
     return PERIODS.find((item) => item.label === period)?.value ?? '1mo'
@@ -250,7 +232,7 @@ export default function CandleChart({ ticker }) {
         ) : null}
 
         {!error ? (
-          <ResponsiveContainer width="100%" height={440}>
+          <ResponsiveContainer width="100%" height={440} minWidth={0} minHeight={440}>
             <ComposedChart data={history} margin={{ top: 16, right: 20, bottom: 8, left: 8 }}>
               <CartesianGrid stroke="rgba(148, 163, 184, 0.12)" strokeDasharray="3 3" vertical={false} />
               <XAxis
@@ -268,10 +250,10 @@ export default function CandleChart({ ticker }) {
                 axisLine={{ stroke: 'rgba(148, 163, 184, 0.18)' }}
                 tickLine={false}
                 width={72}
-                tickFormatter={(value) => moneyFormatter.format(value)}
+                tickFormatter={(value) => formatPrice(value)}
               />
               <YAxis yAxisId="volume" hide domain={[0, 'dataMax']} />
-              <Tooltip content={<ChartTooltip />} />
+              <Tooltip content={<ChartTooltip formatPrice={formatPrice} formatCompact={formatCompact} />} />
               <Customized component={CandleLayer} />
               <Bar
                 yAxisId="volume"

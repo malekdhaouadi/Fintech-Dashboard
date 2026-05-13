@@ -1,25 +1,63 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import CandleChart from './components/CandleChart.jsx'
+import CountryMapSelector from './components/CountryMapSelector.jsx'
+import EconomicCalendar from './components/EconomicCalendar.jsx'
+import MarketOverview from './components/MarketOverview.jsx'
 import Navbar from './components/Navbar.jsx'
 import PortfolioTracker from './components/PortfolioTracker.jsx'
 import PriceCard from './components/PriceCard.jsx'
+import TechnicalAnalysis from './components/TechnicalAnalysis.jsx'
 import Watchlist from './components/Watchlist.jsx'
+import { getMarketConfig, getMarketWatchlist } from './data/markets.js'
+import { getMarketFormatter, formatDateTime } from './utils/formatters.js'
 import { useLivePrices } from './hooks/useLivePrices.js'
 
-const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA', 'AMZN']
+const MARKET_OVERVIEW_TICKERS = ['^GSPC', '^IXIC', '^DJI', '^FCHI', '^GDAXI', 'GC=F', 'BTC-USD', 'EURUSD=X']
+
+function flattenGroups(groups = []) {
+  const tickers = []
+  groups.forEach((group) => {
+    ;(group.tickers ?? []).forEach((ticker) => tickers.push(String(ticker).trim().toUpperCase()))
+  })
+  return Array.from(new Set(tickers.filter(Boolean)))
+}
 
 export default function App() {
-  const [tickers, setTickers] = useState(DEFAULT_TICKERS)
-  const [selectedTicker, setSelectedTicker] = useState(DEFAULT_TICKERS[0])
+  const [currentMarket, setCurrentMarket] = useState('global')
+  const [customTickersByMarket, setCustomTickersByMarket] = useState({})
+  const [selectedTicker, setSelectedTicker] = useState('AAPL')
 
-  const { prices, loading, error, isLive, priceFlash } = useLivePrices(tickers)
+  const marketConfig = getMarketConfig(currentMarket)
+  const marketWatchlist = getMarketWatchlist(currentMarket)
+  const customTickers = customTickersByMarket[currentMarket] ?? []
+
+  const watchlistGroups = useMemo(() => {
+    const customGroup = customTickers.length > 0 ? [{ title: 'Custom', tickers: customTickers }] : []
+    return [...customGroup, ...(marketWatchlist.groups ?? [])]
+  }, [customTickers, marketWatchlist.groups])
+
+  const liveTickers = useMemo(() => {
+    return Array.from(new Set([...flattenGroups(watchlistGroups), ...MARKET_OVERVIEW_TICKERS]))
+  }, [watchlistGroups])
+
+  const { prices, loading, error, isLive, priceFlash } = useLivePrices(liveTickers)
+  const formatters = useMemo(() => getMarketFormatter(marketConfig), [marketConfig])
   const selectedPrice = prices[selectedTicker]
 
   useEffect(() => {
-    if (!tickers.includes(selectedTicker)) {
-      setSelectedTicker(tickers[0] ?? DEFAULT_TICKERS[0])
+    document.title = `FinPulse · ${marketConfig.label}`
+  }, [marketConfig.label])
+
+  useEffect(() => {
+    const availableTickers = flattenGroups(watchlistGroups)
+    if (availableTickers.length === 0) {
+      return
     }
-  }, [selectedTicker, tickers])
+
+    if (!availableTickers.includes(selectedTicker)) {
+      setSelectedTicker(availableTickers[0])
+    }
+  }, [selectedTicker, watchlistGroups])
 
   const handleAddTicker = (ticker) => {
     const normalized = String(ticker ?? '').trim().toUpperCase()
@@ -27,48 +65,91 @@ export default function App() {
       return
     }
 
-    setTickers((current) => (current.includes(normalized) ? current : [...current, normalized]))
+    setCustomTickersByMarket((current) => {
+      const marketTickers = current[currentMarket] ?? []
+      if (marketTickers.includes(normalized)) {
+        return current
+      }
+
+      return {
+        ...current,
+        [currentMarket]: [...marketTickers, normalized],
+      }
+    })
     setSelectedTicker(normalized)
   }
 
-  return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
-      <Navbar onAddTicker={handleAddTicker} isLive={isLive} />
+  const handleMarketSelect = (marketId) => {
+    setCurrentMarket(marketId)
+    const nextMarket = getMarketWatchlist(marketId)
+    const nextTickers = flattenGroups([...(customTickersByMarket[marketId] ? [{ title: 'Custom', tickers: customTickersByMarket[marketId] }] : []), ...(nextMarket.groups ?? [])])
+    if (nextTickers.length > 0) {
+      setSelectedTicker(nextTickers[0])
+    }
+  }
 
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 lg:min-h-[calc(100vh-88px)] lg:flex-row">
-        <aside className="w-full lg:w-[280px] lg:flex-none">
+  return (
+    <div className="min-h-screen bg-gray-950 text-gray-100 transition-colors duration-300">
+      <Navbar
+        onAddTicker={handleAddTicker}
+        isLive={isLive}
+        currentMarket={currentMarket}
+        onMarketSelect={handleMarketSelect}
+      />
+
+      <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-4 px-4 py-4 xl:flex-row">
+        <aside className="flex w-full flex-col gap-4 xl:w-[420px] xl:flex-none">
+          <CountryMapSelector selectedMarket={currentMarket} onSelectMarket={handleMarketSelect} />
           <Watchlist
-            tickers={tickers}
+            groups={watchlistGroups}
             selectedTicker={selectedTicker}
             onSelectTicker={setSelectedTicker}
             prices={prices}
             loading={loading}
             error={error}
             priceFlash={priceFlash}
+            marketLabel={marketConfig.label}
+            formatters={formatters}
           />
+          <EconomicCalendar />
         </aside>
 
         <main className="flex min-w-0 flex-1 flex-col gap-4">
+          <MarketOverview formatters={formatters} />
+
           <section className="rounded-3xl border border-gray-800 bg-gray-900/80 p-5 shadow-2xl shadow-black/25 backdrop-blur-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-gray-500">Selected ticker</p>
-                <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-white lg:text-5xl">
-                  {selectedTicker}
-                </h1>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <h1 className="text-4xl font-extrabold tracking-tight text-white lg:text-5xl">{selectedTicker}</h1>
+                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-emerald-300">
+                    {marketConfig.label}
+                  </span>
+                </div>
                 <p className="mt-2 max-w-2xl text-sm text-gray-400">
-                  Live quote summary and historical candlestick view for your current selection.
+                  Live quote summary and historical view for the current market selection.
                 </p>
               </div>
 
               <div className="w-full lg:max-w-md">
-                <PriceCard priceData={selectedPrice} flashDirection={priceFlash[selectedTicker]} />
+                <PriceCard
+                  priceData={selectedPrice}
+                  flashDirection={priceFlash[selectedTicker]}
+                  formatters={formatters}
+                  lastUpdated={selectedPrice?.updatedAt ?? null}
+                />
               </div>
             </div>
           </section>
 
-          <CandleChart ticker={selectedTicker} />
-          <PortfolioTracker prices={prices} />
+          <CandleChart ticker={selectedTicker} formatters={formatters} />
+          <TechnicalAnalysis ticker={selectedTicker} formatters={formatters} />
+          <PortfolioTracker prices={prices} formatters={formatters} />
+
+          <div className="pb-2 text-right text-[10px] uppercase tracking-[0.3em] text-gray-600">
+            Session updated {formatDateTime(new Date())}
+          </div>
         </main>
       </div>
     </div>
