@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Line, LineChart, ResponsiveContainer } from 'recharts'
+import { Line, LineChart } from 'recharts'
 import { getHistory } from '../services/api.js'
 
 function MiniSparkline({ points, positive }) {
@@ -9,18 +9,16 @@ function MiniSparkline({ points, positive }) {
 
   return (
     <div className="flex h-8 w-20 items-center justify-center">
-      <ResponsiveContainer width="100%" height="100%" minWidth={80} minHeight={32}>
-        <LineChart data={points} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-          <Line
-            type="monotone"
-            dataKey="close"
-            stroke={positive ? '#22c55e' : '#ef4444'}
-            strokeWidth={2}
-            dot={false}
-            isAnimationActive={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      <LineChart width={80} height={32} data={points} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+        <Line
+          type="monotone"
+          dataKey="close"
+          stroke={positive ? '#22c55e' : '#ef4444'}
+          strokeWidth={2}
+          dot={false}
+          isAnimationActive={false}
+        />
+      </LineChart>
     </div>
   )
 }

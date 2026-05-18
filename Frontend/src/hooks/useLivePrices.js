@@ -13,6 +13,7 @@ export function useLivePrices(tickers = []) {
 
   const wsRef = useRef(null)
   const reconnectRef = useRef(null)
+  const connectDelayRef = useRef(null)
   const backoffRef = useRef(1)
 
   const normalizedTickers = useMemo(
@@ -44,6 +45,13 @@ export function useLivePrices(tickers = []) {
       if (reconnectRef.current) {
         window.clearTimeout(reconnectRef.current)
         reconnectRef.current = null
+      }
+    }
+
+    const clearConnectDelay = () => {
+      if (connectDelayRef.current) {
+        window.clearTimeout(connectDelayRef.current)
+        connectDelayRef.current = null
       }
     }
 
@@ -153,13 +161,20 @@ export function useLivePrices(tickers = []) {
       }
     }
 
-    connect()
+    // Defer the initial socket creation so React StrictMode's dev-only
+    // mount/unmount cycle can clean up before a CONNECTING socket is closed.
+    connectDelayRef.current = window.setTimeout(connect, 0)
 
     return () => {
       active = false
+      clearConnectDelay()
       clearReconnectTimer()
 
       if (wsRef.current) {
+        wsRef.current.onopen = null
+        wsRef.current.onmessage = null
+        wsRef.current.onerror = null
+        wsRef.current.onclose = null
         wsRef.current.close()
         wsRef.current = null
       }

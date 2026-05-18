@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import CandleChart from './components/CandleChart.jsx'
 import CrankNicolsonVisualizer from './components/CrankNicolsonVisualizer'
-import CountryMapSelector from './components/CountryMapSelector.jsx'
 import EconomicCalendar from './components/EconomicCalendar.jsx'
 import FFTChain from './components/FFTChain'
 import MarketOverview from './components/MarketOverview.jsx'
@@ -18,13 +17,67 @@ import { useLivePrices } from './hooks/useLivePrices.js'
 
 const MARKET_OVERVIEW_TICKERS = ['^GSPC', '^IXIC', '^DJI', '^FCHI', '^GDAXI', 'GC=F', 'BTC-USD', 'EURUSD=X']
 const TABS = [
-  { id: 'market', label: 'Market Data' },
-  { id: 'portfolio', label: 'Portfolio' },
-  { id: 'options', label: '📈 Options Pricing' },
-  { id: 'pde', label: '🔢 PDE Solver (Crank-Nicolson)' },
-  { id: 'surface', label: '🌋 Vol Surface' },
-  { id: 'fft', label: '⚡ FFT Chain' },
+  { id: 'market', label: 'Market Data', icon: 'chart' },
+  { id: 'portfolio', label: 'Portfolio', icon: 'briefcase' },
+  { id: 'options', label: 'Options Pricing', icon: 'trend' },
+  { id: 'pde', label: 'PDE Solver (Crank-Nicolson)', icon: 'grid' },
+  { id: 'surface', label: 'Vol Surface', icon: 'surface' },
+  { id: 'fft', label: 'FFT Chain', icon: 'bolt' },
 ]
+
+function TabIcon({ icon }) {
+  const common = 'h-4 w-4 shrink-0'
+  switch (icon) {
+    case 'chart':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M4 19h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M7 16V9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M12 16V5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M17 16v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      )
+    case 'briefcase':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M9 7V6.2A2.2 2.2 0 0 1 11.2 4h1.6A2.2 2.2 0 0 1 15 6.2V7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <rect x="4" y="7" width="16" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M4 12h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      )
+    case 'trend':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M4 17l5-5 4 4 7-8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M15 8h5v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'grid':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+          <rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+          <rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+          <rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+      )
+    case 'surface':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M4 17c2.5-4 4.5-6 8-6s5.5 2 8 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M6 13l3-3 3 2 6-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'bolt':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
 
 function flattenGroups(groups = []) {
   const tickers = []
@@ -126,7 +179,10 @@ export default function App() {
                     : 'border-gray-800 bg-gray-950/50 text-gray-400 hover:border-gray-700 hover:text-gray-200'
                 }`}
               >
-                {tab.label}
+                <span className="inline-flex items-center gap-2">
+                  <TabIcon icon={tab.icon} />
+                  <span>{tab.label}</span>
+                </span>
               </button>
             )
           })}
@@ -135,7 +191,6 @@ export default function App() {
 
       <div className="mx-auto flex w-full max-w-[1680px] flex-col gap-4 px-4 py-4 xl:flex-row">
         <aside className="flex w-full flex-col gap-4 xl:w-[420px] xl:flex-none">
-          <CountryMapSelector selectedMarket={currentMarket} onSelectMarket={handleMarketSelect} />
           <Watchlist
             groups={watchlistGroups}
             selectedTicker={selectedTicker}

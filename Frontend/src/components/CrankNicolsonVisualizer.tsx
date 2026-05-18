@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   CartesianGrid,
   Legend,
@@ -41,6 +41,7 @@ export default function CrankNicolsonVisualizer() {
   const [error, setError] = useState('')
   const [sigma, setSigma] = useState<number | null>(null)
   const [cn, setCn] = useState<CNResponse | null>(null)
+  const [chartReady, setChartReady] = useState(false)
 
   const chartData = useMemo(() => {
     if (!cn) return []
@@ -90,6 +91,10 @@ export default function CrankNicolsonVisualizer() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    setChartReady(true)
+  }, [])
 
   return (
     <section className="rounded-3xl border border-gray-800 bg-gray-900/90 p-5 shadow-2xl shadow-black/30">
@@ -200,8 +205,9 @@ export default function CrankNicolsonVisualizer() {
           </div>
 
           <div className="mt-4 h-[420px] rounded-2xl border border-gray-700 bg-gray-950/70 p-3">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 20, right: 24, bottom: 20, left: 0 }}>
+            {chartReady ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 20, right: 24, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="spot" stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 12 }} />
                 <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 12 }} />
@@ -217,8 +223,9 @@ export default function CrankNicolsonVisualizer() {
                 <Line type="monotone" dataKey="exact" stroke="#22c55e" strokeWidth={2} dot={false} name="Exact Black-Scholes" />
                 <Line type="monotone" dataKey="numerical" stroke="#60a5fa" strokeWidth={2} dot={false} name="Crank-Nicolson" />
                 <Line type="monotone" dataKey="absError" stroke="#f59e0b" strokeWidth={1.5} dot={false} name="|Error|" />
-              </LineChart>
-            </ResponsiveContainer>
+                </LineChart>
+              </ResponsiveContainer>
+            ) : null}
           </div>
         </>
       ) : null}

@@ -2,6 +2,84 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { MARKET_OPTIONS } from '../data/markets.js'
 import { searchTickers } from '../services/api.js'
 
+function MarketIcon({ icon }) {
+  const common = 'h-4 w-4 shrink-0 text-emerald-300'
+  switch (icon) {
+    case 'globe':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M3.8 12h16.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M12 3.5c2.5 2.3 4 5.3 4 8.5s-1.5 6.2-4 8.5c-2.5-2.3-4-5.3-4-8.5s1.5-6.2 4-8.5Z" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+      )
+    case 'star':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M12 3.8 14.8 9l5.7.8-4.2 4 1 5.6L12 16.8 6.7 19.4l1-5.6-4.2-4 5.7-.8L12 3.8Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'location':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M12 21s6-5.2 6-10.2A6 6 0 0 0 6 10.8C6 15.8 12 21 12 21Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <circle cx="12" cy="10.6" r="2.1" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+      )
+    case 'layers':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="m12 4 8 4-8 4-8-4 8-4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="m4 12 8 4 8-4" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="m4 16 8 4 8-4" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'shield':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M12 3.5 19 6v5.2c0 4.8-3.2 7.9-7 9.3-3.8-1.4-7-4.5-7-9.3V6l7-2.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'arch':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M6 19V10a6 6 0 0 1 12 0v9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <path d="M6 19h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      )
+    case 'rocket':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M14.8 3.8c2.5.2 4.2 1.8 5.4 4.3-1.7 1.3-3.6 2.1-5.5 2.4l-1.8-1.8c.3-1.9 1.1-3.8 1.9-4.9Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M10.5 9.8 6 14.3l3.7 3.7 4.5-4.5" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="m7.2 16.1-2.4 2.4 1.7.6.6 1.7 2.4-2.4" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'coin':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <ellipse cx="12" cy="12" rx="7.5" ry="8" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M9.6 10.2c0-1.2 1.1-2.2 2.4-2.2s2.4 1 2.4 2.2S13.3 12 12 12s-2.4.9-2.4 2.1 1.1 2.2 2.4 2.2 2.4-1 2.4-2.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      )
+    case 'swap':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M7 7h12M15 4l4 3-4 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M17 17H5m4 3-4-3 4-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'industry':
+      return (
+        <svg viewBox="0 0 24 24" className={common} fill="none" aria-hidden="true">
+          <path d="M4 19V9l5 3V9l5 3V7l6 3v9H4Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
 export default function Navbar({ onAddTicker, isLive, currentMarket, onMarketSelect }) {
   const [value, setValue] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -16,6 +94,9 @@ export default function Navbar({ onAddTicker, isLive, currentMarket, onMarketSel
     () => MARKET_OPTIONS.find((market) => market.id === currentMarket) ?? MARKET_OPTIONS[0],
     [currentMarket],
   )
+  const searchPlaceholder = selectedMarketObj.searchPlaceholder ?? 'Search stocks, ETFs, crypto, forex...'
+  const searchCopy = selectedMarketObj.searchCopy ?? 'Search stocks, ETFs, crypto, forex...'
+  const headerTitle = selectedMarketObj.shortLabel ?? `${selectedMarketObj.label} Market Pulse`
 
   const fetchSuggestions = async (query) => {
     const trimmed = query.trim()
@@ -115,7 +196,8 @@ export default function Navbar({ onAddTicker, isLive, currentMarket, onMarketSel
                   {isLive ? 'LIVE' : 'OFFLINE'}
                 </span>
               </div>
-              <h1 className="text-xl font-bold text-white">Global Market Pulse</h1>
+              <h1 className="text-xl font-bold text-white">{headerTitle}</h1>
+              <p className="mt-1 max-w-xl text-xs text-gray-500">{searchCopy}</p>
             </div>
           </div>
 
@@ -125,7 +207,7 @@ export default function Navbar({ onAddTicker, isLive, currentMarket, onMarketSel
               onClick={() => setMarketMenuOpen((current) => !current)}
               className="flex items-center gap-2 rounded-2xl border border-gray-800 bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
             >
-              <span>{selectedMarketObj.flag}</span>
+              <MarketIcon icon={selectedMarketObj.icon} />
               <span>{selectedMarketObj.label}</span>
               <svg className="ml-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -146,7 +228,7 @@ export default function Navbar({ onAddTicker, isLive, currentMarket, onMarketSel
                       currentMarket === market.id ? 'bg-gray-800 text-white' : 'text-gray-300'
                     }`}
                   >
-                    <span>{market.flag}</span>
+                      <MarketIcon icon={market.icon} />
                     <span>{market.label}</span>
                   </button>
                 ))}
@@ -177,7 +259,7 @@ export default function Navbar({ onAddTicker, isLive, currentMarket, onMarketSel
                 }}
                 onFocus={() => value.length > 0 && setIsOpen(true)}
                 className="w-full bg-transparent text-sm text-white outline-none placeholder:text-gray-500"
-                placeholder="Search stocks, ETFs, crypto, forex..."
+                placeholder={searchPlaceholder}
                 aria-label="Search ticker symbol"
               />
               {isSearching ? (

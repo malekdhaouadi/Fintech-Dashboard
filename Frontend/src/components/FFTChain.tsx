@@ -30,6 +30,7 @@ export default function FFTChain() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [data, setData] = useState<FFTResponse | null>(null)
+  const [chartReady, setChartReady] = useState(false)
 
   const loadData = async () => {
     setLoading(true)
@@ -55,6 +56,10 @@ export default function FFTChain() {
 
   useEffect(() => {
     loadData()
+  }, [])
+
+  useEffect(() => {
+    setChartReady(true)
   }, [])
 
   const chainData = useMemo(() => {
@@ -136,8 +141,9 @@ export default function FFTChain() {
           </div>
 
           <div className="mt-4 h-[400px] rounded-2xl border border-gray-700 bg-gray-950/70 p-3">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chainData} margin={{ top: 20, right: 22, bottom: 20, left: 0 }}>
+            {chartReady ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chainData} margin={{ top: 20, right: 22, bottom: 20, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="strike" stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 12 }} />
                 <YAxis stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 12 }} />
@@ -150,8 +156,9 @@ export default function FFTChain() {
                   }}
                 />
                 <Line type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} dot={false} name="Call price" />
-              </LineChart>
-            </ResponsiveContainer>
+                </LineChart>
+              </ResponsiveContainer>
+            ) : null}
           </div>
 
           {cfSnapshot ? (

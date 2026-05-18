@@ -1,14 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import {
-  Bar,
-  CartesianGrid,
-  ComposedChart,
-  Customized,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Bar, CartesianGrid, ComposedChart, Customized, Tooltip, XAxis, YAxis } from 'recharts'
 import { getHistory } from '../services/api.js'
 
 const PERIODS = [
@@ -137,6 +128,8 @@ export default function CandleChart({ ticker, formatters }) {
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const chartBoxRef = useRef(null)
+  const [chartSize, setChartSize] = useState({ width: 0, height: 440 })
 
   const formatPrice = formatters?.formatPrice ?? ((value) => Number(value).toFixed(2))
   const formatCompact =
@@ -193,6 +186,27 @@ export default function CandleChart({ ticker, formatters }) {
     }
   }, [ticker, backendPeriod])
 
+  useEffect(() => {
+    const element = chartBoxRef.current
+    if (!element) {
+      return undefined
+    }
+
+    const updateSize = () => {
+      const rect = element.getBoundingClientRect()
+      setChartSize({
+        width: Math.max(0, Math.floor(rect.width)),
+        height: 440,
+      })
+    }
+
+    updateSize()
+    const observer = new ResizeObserver(updateSize)
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <section className="flex min-h-[520px] flex-col rounded-3xl border border-gray-800 bg-gray-900/95 p-4 shadow-2xl shadow-black/30">
       <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -224,16 +238,15 @@ export default function CandleChart({ ticker, formatters }) {
         </div>
       </div>
 
-      <div className="relative flex-1 overflow-hidden rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
+      <div ref={chartBoxRef} className="relative flex-1 overflow-hidden rounded-2xl border border-gray-800 bg-gray-950/60 p-3">
         {error ? (
           <div className="flex h-full items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-center text-sm text-red-300">
             {error}
           </div>
         ) : null}
 
-        {!error ? (
-          <ResponsiveContainer width="100%" height={440} minWidth={1} minHeight={440}>
-            <ComposedChart data={history} margin={{ top: 16, right: 20, bottom: 8, left: 8 }}>
+        {!error && chartSize.width > 0 ? (
+          <ComposedChart width={chartSize.width} height={chartSize.height} data={history} margin={{ top: 16, right: 20, bottom: 8, left: 8 }}>
               <CartesianGrid stroke="rgba(148, 163, 184, 0.12)" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="date"
@@ -263,8 +276,7 @@ export default function CandleChart({ ticker, formatters }) {
                 radius={[6, 6, 0, 0]}
                 barSize={10}
               />
-            </ComposedChart>
-          </ResponsiveContainer>
+          </ComposedChart>
         ) : null}
 
         {loading ? (

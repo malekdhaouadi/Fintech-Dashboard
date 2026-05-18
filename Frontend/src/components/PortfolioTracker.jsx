@@ -22,6 +22,7 @@ function PortfolioTooltip({ active, payload }) {
 export default function PortfolioTracker({ prices, formatters, onTickersChange }) {
   const [form, setForm] = useState({ ticker: '', quantity: '', buyPrice: '' })
   const [formError, setFormError] = useState('')
+  const [chartReady, setChartReady] = useState(false)
   const [holdings, setHoldings] = useState(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
@@ -40,6 +41,10 @@ export default function PortfolioTracker({ prices, formatters, onTickersChange }
       onTickersChange(holdings.map((h) => h.ticker))
     }
   }, [holdings, onTickersChange])
+
+  useEffect(() => {
+    setChartReady(true)
+  }, [])
 
   const enriched = useMemo(() => {
     return holdings.map((holding) => {
@@ -215,24 +220,26 @@ export default function PortfolioTracker({ prices, formatters, onTickersChange }
         <div className="rounded-2xl border border-gray-800 bg-gray-950/50 p-3">
           <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Allocation</p>
           <div className="mt-3 h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="currentValue"
-                  nameKey="ticker"
-                  innerRadius={50}
-                  outerRadius={85}
-                  paddingAngle={2}
-                  stroke="none"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={entry.ticker} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip content={<PortfolioTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
+            {chartReady ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="currentValue"
+                    nameKey="ticker"
+                    innerRadius={50}
+                    outerRadius={85}
+                    paddingAngle={2}
+                    stroke="none"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={entry.ticker} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<PortfolioTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : null}
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 export const MARKET_CONFIG = {
   global: {
     label: 'Global Markets',
-    flag: '🌍',
+    icon: 'globe',
     currency: 'USD',
     currencyMode: 'currency',
     map: { center: [0, 18], zoom: 1.2 },
@@ -20,7 +20,7 @@ export const MARKET_CONFIG = {
   },
   us: {
     label: 'US',
-    flag: '🇺🇸',
+    icon: 'star',
     currency: 'USD',
     currencyMode: 'currency',
     map: { center: [-96, 37.5], zoom: 3.2 },
@@ -28,7 +28,7 @@ export const MARKET_CONFIG = {
   },
   tunisia: {
     label: 'Tunisia',
-    flag: '🇹🇳',
+    icon: 'location',
     currency: 'TND',
     currencyMode: 'currency',
     map: { center: [9.5, 34.0], zoom: 5.7 },
@@ -36,7 +36,7 @@ export const MARKET_CONFIG = {
   },
   france: {
     label: 'France',
-    flag: '🇫🇷',
+    icon: 'layers',
     currency: 'EUR',
     currencyMode: 'currency',
     map: { center: [2.2, 46.2], zoom: 5.2 },
@@ -44,7 +44,7 @@ export const MARKET_CONFIG = {
   },
   germany: {
     label: 'Germany',
-    flag: '🇩🇪',
+    icon: 'shield',
     currency: 'EUR',
     currencyMode: 'currency',
     map: { center: [10.4, 51.1], zoom: 5.2 },
@@ -52,15 +52,34 @@ export const MARKET_CONFIG = {
   },
   uk: {
     label: 'UK',
-    flag: '🇬🇧',
+    icon: 'arch',
     currency: 'GBP',
     currencyMode: 'currency',
     map: { center: [-2.5, 54.1], zoom: 4.9 },
     watchlist: { groups: [{ title: 'LSE', tickers: ['SHEL.L', 'AZN.L', 'HSBA.L', 'BP.L'] }] },
   },
+  china: {
+    label: 'China',
+    shortLabel: 'China Market',
+    icon: 'rocket',
+    currency: 'CNY',
+    currencyMode: 'currency',
+    map: { center: [104.2, 35.8], zoom: 3.2 },
+    searchPlaceholder: 'Search China equities, ADRs, EVs, and semiconductors...',
+    searchCopy: 'Track A-shares, ADRs, EVs, and internet platforms in China.',
+    watchlist: {
+      groups: [
+        { title: 'Internet Platforms', tickers: ['BABA', 'JD', 'PDD', 'TME', 'BIDU', 'TCEHY'] },
+        { title: 'EV & Mobility', tickers: ['NIO', 'XPEV', 'LI', 'BYDDF'] },
+        { title: 'Semiconductors', tickers: ['SMIC', 'HXSCL', 'NAAS'] },
+        { title: 'Financials', tickers: ['HK:0939', 'HK:3988', 'HK:2318'] },
+        { title: 'Consumer & Retail', tickers: ['MNSO', 'YUMC', 'VIPS'] },
+      ],
+    },
+  },
   crypto: {
     label: 'Crypto',
-    flag: '🪙',
+    icon: 'coin',
     currency: 'USD',
     currencyMode: 'currency',
     map: { center: [0, 18], zoom: 1.4 },
@@ -68,7 +87,7 @@ export const MARKET_CONFIG = {
   },
   forex: {
     label: 'Forex',
-    flag: '🌐',
+    icon: 'swap',
     currency: 'USD',
     currencyMode: 'decimal',
     map: { center: [0, 20], zoom: 1.2 },
@@ -76,7 +95,7 @@ export const MARKET_CONFIG = {
   },
   commodities: {
     label: 'Commodities',
-    flag: '🏗️',
+    icon: 'industry',
     currency: 'USD',
     currencyMode: 'currency',
     map: { center: [0, 20], zoom: 1.2 },
@@ -84,7 +103,7 @@ export const MARKET_CONFIG = {
   },
 }
 
-export const MARKET_ORDER = ['global', 'us', 'tunisia', 'france', 'germany', 'uk', 'crypto', 'forex', 'commodities']
+export const MARKET_ORDER = ['global', 'us', 'tunisia', 'france', 'germany', 'uk', 'china', 'crypto', 'forex', 'commodities']
 
 export const MARKET_OPTIONS = MARKET_ORDER.map((id) => ({ id, ...MARKET_CONFIG[id] }))
 
