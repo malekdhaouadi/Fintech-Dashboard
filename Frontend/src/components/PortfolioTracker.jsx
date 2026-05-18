@@ -19,30 +19,27 @@ function PortfolioTooltip({ active, payload }) {
   )
 }
 
-export default function PortfolioTracker({ prices, formatters }) {
+export default function PortfolioTracker({ prices, formatters, onTickersChange }) {
   const [form, setForm] = useState({ ticker: '', quantity: '', buyPrice: '' })
-  const [holdings, setHoldings] = useState([])
+  const [formError, setFormError] = useState('')
+  const [holdings, setHoldings] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) return parsed
+      }
+    } catch {}
+    return []
+  })
   const formatMoney = formatters?.formatPrice ?? ((value) => Number(value).toFixed(2))
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) {
-        return
-      }
-
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) {
-        setHoldings(parsed)
-      }
-    } catch {
-      setHoldings([])
-    }
-  }, [])
-
-  useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(holdings))
-  }, [holdings])
+    if (onTickersChange) {
+      onTickersChange(holdings.map((h) => h.ticker))
+    }
+  }, [holdings, onTickersChange])
 
   const enriched = useMemo(() => {
     return holdings.map((holding) => {
@@ -80,12 +77,22 @@ export default function PortfolioTracker({ prices, formatters }) {
 
   const addHolding = (event) => {
     event.preventDefault()
+    setFormError('')
 
     const ticker = form.ticker.trim().toUpperCase()
     const quantity = Number(form.quantity)
     const buyPrice = Number(form.buyPrice)
 
-    if (!ticker || !Number.isFinite(quantity) || !Number.isFinite(buyPrice) || quantity <= 0 || buyPrice <= 0) {
+    if (!ticker) {
+      setFormError('Ticker is required.')
+      return
+    }
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setFormError('Quantity must be greater than 0.')
+      return
+    }
+    if (!Number.isFinite(buyPrice) || buyPrice <= 0) {
+      setFormError('Buy price must be greater than 0.')
       return
     }
 
@@ -164,6 +171,7 @@ export default function PortfolioTracker({ prices, formatters }) {
           Add Position
         </button>
       </form>
+      {formError && <p className="mt-2 text-sm text-red-400">{formError}</p>}
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.4fr_1fr]">
         <div className="space-y-2">
@@ -207,7 +215,7 @@ export default function PortfolioTracker({ prices, formatters }) {
         <div className="rounded-2xl border border-gray-800 bg-gray-950/50 p-3">
           <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Allocation</p>
           <div className="mt-3 h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <PieChart>
                 <Pie
                   data={pieData}

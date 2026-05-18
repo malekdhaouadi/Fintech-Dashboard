@@ -232,7 +232,7 @@ export default function CandleChart({ ticker, formatters }) {
         ) : null}
 
         {!error ? (
-          <ResponsiveContainer width="100%" height={440} minWidth={0} minHeight={440}>
+          <ResponsiveContainer width="100%" height={440} minWidth={1} minHeight={440}>
             <ComposedChart data={history} margin={{ top: 16, right: 20, bottom: 8, left: 8 }}>
               <CartesianGrid stroke="rgba(148, 163, 184, 0.12)" strokeDasharray="3 3" vertical={false} />
               <XAxis

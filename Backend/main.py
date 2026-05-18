@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import stocks
+from options_pricing import router as options_router
 
 app = FastAPI()
 app.add_middleware(
@@ -11,3 +12,4 @@ app.add_middleware(
     allow_credentials=True,
 )
 app.include_router(stocks.router, prefix="/api")
+app.include_router(options_router)

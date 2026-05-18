@@ -33,4 +33,31 @@ export async function getIndicators(ticker) {
   return data
 }
 
+export async function getOptionPrice(params) {
+  const { data } = await api.get('/api/options/price', { params })
+  return data
+}
+
+export async function calculateImpliedVol(payload) {
+  const { data } = await api.post('/api/options/implied-vol', payload)
+  return data
+}
+
+export async function solveCrankNicolson(payload) {
+  const { data } = await api.post('/api/options/crank-nicolson', payload)
+  return data
+}
+
+export async function getVolatilitySurface(ticker) {
+  const { data } = await api.get('/api/options/surface', {
+    params: { ticker },
+  })
+  return data
+}
+
+export async function getFftPrices(params) {
+  const { data } = await api.get('/api/options/fft-prices', { params })
+  return data
+}
+
 export default api

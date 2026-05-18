@@ -177,7 +177,7 @@ export default function Watchlist({
         key={row.ticker}
         type="button"
         onClick={() => onSelectTicker(row.ticker)}
-        className={`group flex h-12 w-full items-center gap-3 rounded-2xl border px-3 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-700 hover:bg-emerald-500/5 ${accentClass} ${
+        className={`group flex min-h-[56px] shrink-0 w-full items-center gap-3 rounded-2xl border px-3 py-2 text-left transition-all duration-300 hover:-translate-y-0.5 hover:border-gray-700 hover:bg-emerald-500/5 ${accentClass} ${
           flash === 'up' ? 'ring-1 ring-emerald-500/25' : flash === 'down' ? 'ring-1 ring-red-500/25' : ''
         }`}
       >
@@ -329,11 +329,11 @@ export default function Watchlist({
               const isCollapsed = collapsedGroups[groupTitle] ?? false
 
               return (
-                <div key={groupTitle} className="space-y-2">
+                <div key={groupTitle} className="space-y-2 shrink-0">
                   <button
                     type="button"
                     onClick={() => toggleGroup(groupTitle)}
-                    className="flex w-full items-center justify-between rounded-xl border border-gray-800 bg-gray-950/50 px-3 py-2 text-left transition hover:border-gray-700 hover:bg-gray-900/70"
+                    className="flex shrink-0 w-full items-center justify-between rounded-xl border border-gray-800 bg-gray-950/50 px-3 py-2 text-left transition hover:border-gray-700 hover:bg-gray-900/70"
                   >
                     <div>
                       <p className="text-sm font-semibold text-white">{groupTitle}</p>
